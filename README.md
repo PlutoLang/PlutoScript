@@ -26,3 +26,7 @@ Barring the script tags needed for PlutoScript's usage, this is the entire sourc
     end)
 </script>
 ```
+
+## JavaScript API
+
+- `pluto_invoke(name, ...args)` can be used to invoke a global function defined in any `<script type="pluto">` block.
