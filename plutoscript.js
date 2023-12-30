@@ -1,3 +1,22 @@
+const LUA_TNONE = -1;
+const LUA_TNIL = 0;
+const LUA_TBOOLEAN = 1;
+const LUA_TLIGHTUSERDATA = 2;
+const LUA_TNUMBER = 3;
+const LUA_TSTRING = 4;
+const LUA_TTABLE = 5;
+const LUA_TFUNCTION = 6;
+const LUA_TUSERDATA = 7;
+const LUA_TTHREAD = 8;
+
+const LUA_OK = 0;
+const LUA_YIELD = 1;
+
+const LUAI_MAXSTACK = 1000000;
+const LUA_REGISTRYINDEX = (-LUAI_MAXSTACK - 1000);
+const LUA_NOREF = -2;
+const LUA_REFNIL = -1;
+
 let lib, L;
 libpluto().then(function(mod)
 {
@@ -77,29 +96,17 @@ document = {
 
 	document.querySelectorAll("script[type=pluto]").forEach(function(script)
 	{
-		lib.luaL_loadstring(L, script.textContent);
-		pluto_invoke_impl();
+		if (lib.luaL_loadstring(L, script.textContent) == LUA_OK)
+		{
+			pluto_invoke_impl();
+		}
+		else
+		{
+			console.error(lib.lua_tolstring(L, -1, 0));
+			lib.lua_pop(L, 1);
+		}
 	});
 });
-
-const LUA_TNONE = -1;
-const LUA_TNIL = 0;
-const LUA_TBOOLEAN = 1;
-const LUA_TLIGHTUSERDATA = 2;
-const LUA_TNUMBER = 3;
-const LUA_TSTRING = 4;
-const LUA_TTABLE = 5;
-const LUA_TFUNCTION = 6;
-const LUA_TUSERDATA = 7;
-const LUA_TTHREAD = 8;
-
-const LUA_OK = 0;
-const LUA_YIELD = 1;
-
-const LUAI_MAXSTACK = 1000000;
-const LUA_REGISTRYINDEX = (-LUAI_MAXSTACK - 1000);
-const LUA_NOREF = -2;
-const LUA_REFNIL = -1;
 
 function pluto_extract(coro, nvals)
 {
