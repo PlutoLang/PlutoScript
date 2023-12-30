@@ -126,7 +126,7 @@ function pluto_extract(coro, nvals)
 // Calls the function at -1
 function pluto_invoke_impl(...args)
 {
-	return new Promise(resolve => {
+	return new Promise((resolve, reject) => {
 		let interval, your_mutex_are_belong_to_us, coro, jsyields = 0;
 		interval = setInterval(function()
 		{
@@ -145,7 +145,9 @@ function pluto_invoke_impl(...args)
 				args.forEach(arg => {
 					if (typeof(arg) != "string")
 					{
-						throw new Error("Unsupported argument type: " + typeof(arg));
+						lib.mutex = false;
+						clearInterval(interval);
+						return reject(new Error("Unsupported argument type: " + typeof(arg)));
 					}
 					lib.lua_pushstring(coro, arg);
 					++nargs;
@@ -207,7 +209,9 @@ function pluto_invoke_impl(...args)
 				}
 				else if (status != LUA_OK)
 				{
-					throw new Error(lib.lua_tolstring(coro, -1, 0));
+					lib.mutex = false;
+					clearInterval(interval);
+					return reject(new Error(lib.lua_tolstring(coro, -1, 0)));
 				}
 			}
 			lib.mutex = false;
@@ -216,7 +220,7 @@ function pluto_invoke_impl(...args)
 			let res = pluto_extract(coro, nres);
 			lib.lua_closethread(coro, L);
 			lib.lua_pop(L, 2); // pop coroutine & function
-			resolve(nres == 1 ? res[0] : res);
+			return resolve(nres == 1 ? res[0] : res);
 		}, 1);
 	});
 }
