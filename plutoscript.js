@@ -22,6 +22,7 @@ libpluto().then(function(mod)
 {
 	lib = {
 		mod: mod,
+		mutex: false,
 		malloc: mod.cwrap("malloc", "int", ["int"]),
 		luaL_newstate: mod.cwrap("luaL_newstate", "int", []),
 		luaL_openlibs: mod.cwrap("luaL_openlibs", "void", ["int"]),
@@ -125,85 +126,95 @@ function pluto_extract(coro, nvals)
 // Calls the function at -1
 function pluto_invoke_impl(...args)
 {
-	let coro = lib.lua_newthread(L);
-	lib.lua_pushvalue(L, -2);
-	lib.lua_xmove(L, coro, 1);
-	let nargs = 0;
-	args.forEach(arg => {
-		if (typeof(arg) != "string")
+	return new Promise(resolve => {
+		let interval, your_mutex_are_belong_to_us, coro;
+		interval = setInterval(function()
 		{
-			throw new Error("Unsupported argument type: " + typeof(arg));
-		}
-		lib.lua_pushstring(coro, arg);
-		++nargs;
-	});
-	for (let initial = true; initial || lib.lua_status(coro) == LUA_YIELD; initial = false)
-	{
-		let status = lib.lua_resume(coro, L, nargs, lib.tmpint);
-		nargs = 0;
-		if (status == LUA_YIELD)
-		{
-			let nres = lib.mod.HEAP32[lib.tmpint / 4];
-			if (nres == 0)
+			if (lib.mutex && !your_mutex_are_belong_to_us)
 			{
-				console.error("attempt to call coroutine.yield on main thread");
+				return;
 			}
-			else
+			your_mutex_are_belong_to_us = true;
+			lib.mutex = true;
+			let nargs = 0;
+			if (!coro)
 			{
-				switch (lib.lua_tolstring(coro, -nres, 0))
-				{
-				case "window_call":
-					let data = pluto_extract(coro, nres - 1);
-					window[data.shift()](...data);
-					break;
-
-				case "addEventListener":
-					console.assert(nres == 4);
-					lib.lua_pushvalue(coro, -1);
-					let ref = lib.luaL_ref(coro, LUA_REGISTRYINDEX);
-					document.querySelector(lib.lua_tolstring(coro, -3, 0)).addEventListener(lib.lua_tolstring(coro, -2, 0), function()
+				coro = lib.lua_newthread(L);
+				lib.lua_pushvalue(L, -2);
+				lib.lua_xmove(L, coro, 1);
+				args.forEach(arg => {
+					if (typeof(arg) != "string")
 					{
-						lib.lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-						pluto_invoke_impl();
-					});
-					break;
-
-				case "element_index":
-					console.assert(nres == 3);
-					let path = lib.lua_tolstring(coro, -2, 0);
-					let key = lib.lua_tolstring(coro, -1, 0);
-					lib.lua_pop(coro, nres);
-					lib.lua_pushstring(coro, document.querySelector(path)[key]); ++nargs;
-					break;
-
-				case "element_newindex":
-					console.assert(nres == 4);
-					document.querySelector(lib.lua_tolstring(coro, -3, 0))[lib.lua_tolstring(coro, -2, 0)] = lib.lua_tolstring(coro, -1, 0);
-					break;
-
-				default:
-					console.warn("Unhandled command:", lib.lua_tolstring(coro, -nres, 0));
-				}
-				if (nargs == 0)
+						throw new Error("Unsupported argument type: " + typeof(arg));
+					}
+					lib.lua_pushstring(coro, arg);
+					++nargs;
+				});
+			}
+			for (let initial = true; initial || lib.lua_status(coro) == LUA_YIELD; initial = false)
+			{
+				let status = lib.lua_resume(coro, L, nargs, lib.tmpint);
+				nargs = 0;
+				if (status == LUA_YIELD)
 				{
-					lib.lua_pop(coro, nres);
+					let nres = lib.mod.HEAP32[lib.tmpint / 4];
+					if (nres == 0)
+					{
+						return;
+					}
+					switch (lib.lua_tolstring(coro, -nres, 0))
+					{
+					case "window_call":
+						let data = pluto_extract(coro, nres - 1);
+						window[data.shift()](...data);
+						break;
+
+					case "addEventListener":
+						console.assert(nres == 4);
+						lib.lua_pushvalue(coro, -1);
+						let ref = lib.luaL_ref(coro, LUA_REGISTRYINDEX);
+						document.querySelector(lib.lua_tolstring(coro, -3, 0)).addEventListener(lib.lua_tolstring(coro, -2, 0), function()
+						{
+							lib.lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+							pluto_invoke_impl();
+						});
+						break;
+
+					case "element_index":
+						console.assert(nres == 3);
+						let path = lib.lua_tolstring(coro, -2, 0);
+						let key = lib.lua_tolstring(coro, -1, 0);
+						lib.lua_pop(coro, nres);
+						lib.lua_pushstring(coro, document.querySelector(path)[key]); ++nargs;
+						break;
+
+					case "element_newindex":
+						console.assert(nres == 4);
+						document.querySelector(lib.lua_tolstring(coro, -3, 0))[lib.lua_tolstring(coro, -2, 0)] = lib.lua_tolstring(coro, -1, 0);
+						break;
+
+					default:
+						console.warn("Unhandled command:", lib.lua_tolstring(coro, -nres, 0));
+					}
+					if (nargs == 0)
+					{
+						lib.lua_pop(coro, nres);
+					}
+				}
+				else if (status != LUA_OK)
+				{
+					throw new Error(lib.lua_tolstring(coro, -1, 0));
 				}
 			}
-		}
-		else if (status != LUA_OK)
-		{
-			throw new Error(lib.lua_tolstring(coro, -1, 0));
-		}
-	}
-	let nres = lib.lua_gettop(coro);
-	let res = pluto_extract(coro, nres);
-	lib.lua_closethread(coro, L);
-	lib.lua_pop(L, 2); // pop coroutine & function
-	if (nres == 1)
-	{
-		return res[0];
-	}
-	return res;
+			lib.mutex = false;
+			clearInterval(interval);
+			let nres = lib.lua_gettop(coro);
+			let res = pluto_extract(coro, nres);
+			lib.lua_closethread(coro, L);
+			lib.lua_pop(L, 2); // pop coroutine & function
+			resolve(nres == 1 ? res[0] : res);
+		}, 1);
+	});
 }
 
 function pluto_invoke(name, ...args)
