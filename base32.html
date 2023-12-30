@@ -5,13 +5,7 @@
 <textarea id="encoded"></textarea>
 
 <script type="pluto">
-	function base32_encode(str)
-		return require"base32".encode(str)
-	end
-</script>
-<script>
-	document.getElementById("plain").oninput = function()
-	{
-		document.getElementById("encoded").value = pluto_invoke("base32_encode", document.getElementById("plain").value);
-	}
+	document.getElementById("plain"):addEventListener("input", function()
+		document.getElementById("encoded").value = require"base32".encode(document.getElementById("plain").value)
+	end)
 </script>
