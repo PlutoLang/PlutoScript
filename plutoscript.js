@@ -127,7 +127,7 @@ function pluto_extract(coro, nvals)
 function pluto_invoke_impl(...args)
 {
 	return new Promise(resolve => {
-		let interval, your_mutex_are_belong_to_us, coro;
+		let interval, your_mutex_are_belong_to_us, coro, jsyields = 0;
 		interval = setInterval(function()
 		{
 			if (lib.mutex && !your_mutex_are_belong_to_us)
@@ -160,6 +160,10 @@ function pluto_invoke_impl(...args)
 					let nres = lib.mod.HEAP32[lib.tmpint / 4];
 					if (nres == 0)
 					{
+						if (++jsyields == 2000)
+						{
+							console.trace("Script has been busy-spinning for a while now. Possible bug?");
+						}
 						return;
 					}
 					switch (lib.lua_tolstring(coro, -nres, 0))
