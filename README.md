@@ -6,7 +6,7 @@ Write websites using Pluto (a dialect of Lua) instead of JavaScript.
 
 You simply need to load a suitable WASM build of libpluto, and then PlutoScript itself:
 
-```HTML
+```html
 <script src="https://wasm.pluto.do/out/libpluto/0.8.0/libpluto.js"></script>
 <script src="https://pluto-lang.org/PlutoScript/plutoscript.js"></script>
 ```
@@ -17,7 +17,7 @@ A simple example is the Base32 Encoder tool that is [available online here](http
 
 Barring the script tags needed for PlutoScript's usage, this is the entire source code:
 
-```HTML
+```html
 <textarea id="plain"></textarea>
 <textarea id="encoded"></textarea>
 <script type="pluto">
