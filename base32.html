@@ -1,22 +1,17 @@
-<script src="https://wasm.pluto.do/out/pluto/0.8.0/pluto.js"></script>
+<script src="https://wasm.pluto.do/out/libpluto/0.8.0/libpluto.js"></script>
 <script src="plutomagic.js"></script>
 
 <textarea id="plain"></textarea>
 <textarea id="encoded"></textarea>
 
-<script type="pluto" name="base32_encode">
-	local input = io.open("input", "rb"):read("*a")
-
-	local output = require"pluto:base32".encode(input)
-
-	io.open("output", "wb"):write(output)
+<script type="pluto">
+	function base32_encode(str)
+		return require"base32".encode(str)
+	end
 </script>
 <script>
 	document.getElementById("plain").oninput = function()
 	{
-		pluto_fs_write("base32_encode.pluto", document.querySelector("script[name=base32_encode]").textContent);
-		pluto_fs_write("input", document.getElementById("plain").value);
-		pluto_execute("base32_encode.pluto");
-		document.getElementById("encoded").value = pluto_fs_read("output");
+		document.getElementById("encoded").value = pluto_invoke("base32_encode", document.getElementById("plain").value);
 	}
 </script>
