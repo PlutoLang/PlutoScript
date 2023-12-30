@@ -32,7 +32,7 @@ libpluto().then(function(mod)
 	L = lib.luaL_newstate();
 	lib.luaL_openlibs(L);
 
-	lib.luaL_loadstring(L,`--[[ plutomagic.js ]]
+	lib.luaL_loadstring(L,`--[[ PlutoScript Runtime ]]
 
 js_invoke = coroutine.yield
 coroutine.yield = nil
