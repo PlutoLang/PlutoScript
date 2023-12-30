@@ -35,7 +35,6 @@ libpluto().then(function(mod)
 	lib.luaL_loadstring(L,`--[[ PlutoScript Runtime ]]
 
 js_invoke = coroutine.yield
-coroutine.yield = nil
 
 window = setmetatable({}, { -- silly little thingy to make 'window.alert' work
 	__index = function(self, key)
@@ -138,7 +137,11 @@ function pluto_invoke_impl(...args)
 		if (status == LUA_YIELD)
 		{
 			let nres = lib.mod.HEAP32[lib.tmpint / 4];
-			if (nres != 0)
+			if (nres == 0)
+			{
+				console.error("attempt to call coroutine.yield on main thread");
+			}
+			else
 			{
 				switch (lib.lua_tolstring(coro, -nres, 0))
 				{
