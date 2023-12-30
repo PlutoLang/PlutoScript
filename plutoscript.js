@@ -31,7 +31,9 @@ libpluto().then(function(mod)
 		lua_getglobal: mod.cwrap("lua_getglobal", "void", ["int", "string"]),
 		lua_type: mod.cwrap("lua_type", "int", ["int", "int"]),
 		lua_pushstring: mod.cwrap("lua_pushstring", "void", ["int", "string"]),
+		lua_pushinteger: mod.cwrap("lua_pushinteger", "void", ["int", "int"]),
 		lua_tolstring: mod.cwrap("lua_tolstring", "string", ["int", "int", "int"]),
+		lua_tointegerx: mod.cwrap("lua_tointegerx", "int", ["int", "int", "int"]),
 		lua_settop: mod.cwrap("lua_settop", "void", ["int", "int"]),
 		lua_setglobal: mod.cwrap("lua_setglobal", "void", ["int", "string"]),
 		lua_newthread: mod.cwrap("lua_newthread", "int", ["int"]),
@@ -114,11 +116,19 @@ function pluto_extract(coro, nvals)
 	let vals = [];
 	for (let i = 0; i != nvals; ++i)
 	{
-		if (lib.lua_type(coro, -(nvals-i)) != LUA_TSTRING)
+		switch (lib.lua_type(coro, -(nvals-i)))
 		{
+		case LUA_TSTRING:
+			vals.push(lib.lua_tolstring(coro, -(nvals-i), 0));
+			break;
+
+		case LUA_TNUMBER:
+			vals.push(lib.lua_tointegerx(coro, -(nvals-i), 0));
+			break;
+
+		default:
 			throw new Error("Unsupported return type: " + lib.lua_type(coro, -(nvals-i)));
 		}
-		vals.push(lib.lua_tolstring(coro, -(nvals-i), 0));
 	}
 	return vals;
 }
@@ -143,13 +153,21 @@ function pluto_invoke_impl(...args)
 				lib.lua_pushvalue(L, -2);
 				lib.lua_xmove(L, coro, 1);
 				args.forEach(arg => {
-					if (typeof(arg) != "string")
+					switch (typeof(arg))
 					{
+					case "string":
+						lib.lua_pushstring(coro, arg);
+						break;
+
+					case "number":
+						lib.lua_pushinteger(coro, arg);
+						break;
+
+					default:
 						lib.mutex = false;
 						clearInterval(interval);
 						return reject(new Error("Unsupported argument type: " + typeof(arg)));
 					}
-					lib.lua_pushstring(coro, arg);
 					++nargs;
 				});
 			}
