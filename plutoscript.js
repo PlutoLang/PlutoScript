@@ -62,7 +62,7 @@ window = setmetatable({}, { -- silly little thingy to make 'window.alert' work
 	__index = function(self, key)
 		return setmetatable({}, {
 			__call = function(_, ...)
-				js_invoke("window_call", key, ...)
+				js_invoke(key, ...)
 			end
 		})
 	end
@@ -76,18 +76,18 @@ class Element
 		if Element[key] then
 			return Element[key]
 		end
-		return js_invoke("element_index", self.path, key)
+		return js_invoke("pluto_cmd_Element_index", self.path, key)
 	end
 
 	function __newindex(key, value)
 		if key == "path" then
 			rawset(self, key, value)
 		end
-		return js_invoke("element_newindex", self.path, key, value)
+		return js_invoke("pluto_cmd_Element_newindex", self.path, key, value)
 	end
 
 	function addEventListener(type, callback)
-		js_invoke("addEventListener", self.path, type, callback)
+		js_invoke("pluto_cmd_addEventListener", self.path, type, callback)
 	end
 end
 
@@ -111,6 +111,24 @@ document = {
 	});
 });
 
+function pluto_push(coro, arg)
+{
+	switch (typeof(arg))
+	{
+	case "string":
+		lib.lua_pushstring(coro, arg);
+		break;
+
+	case "number":
+		lib.lua_pushinteger(coro, arg);
+		break;
+
+	default:
+		return false;
+	}
+	return true;
+}
+
 function pluto_extract(coro, nvals)
 {
 	let vals = [];
@@ -124,6 +142,16 @@ function pluto_extract(coro, nvals)
 
 		case LUA_TNUMBER:
 			vals.push(lib.lua_tointegerx(coro, -(nvals-i), 0));
+			break;
+
+		case LUA_TFUNCTION:
+			lib.lua_pushvalue(coro, -1);
+			let ref = lib.luaL_ref(coro, LUA_REGISTRYINDEX);
+			vals.push(function()
+			{
+				lib.lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+				pluto_invoke_impl();
+			});
 			break;
 
 		default:
@@ -153,17 +181,8 @@ function pluto_invoke_impl(...args)
 				lib.lua_pushvalue(L, -2);
 				lib.lua_xmove(L, coro, 1);
 				args.forEach(arg => {
-					switch (typeof(arg))
+					if (!pluto_push(coro, arg))
 					{
-					case "string":
-						lib.lua_pushstring(coro, arg);
-						break;
-
-					case "number":
-						lib.lua_pushinteger(coro, arg);
-						break;
-
-					default:
 						lib.mutex = false;
 						clearInterval(interval);
 						return reject(new Error("Unsupported argument type: " + typeof(arg)));
@@ -186,43 +205,12 @@ function pluto_invoke_impl(...args)
 						}
 						return;
 					}
-					switch (lib.lua_tolstring(coro, -nres, 0))
+					let data = pluto_extract(coro, nres);
+					lib.lua_pop(coro, nres);
+					let ret = window[data.shift()](...data);
+					if (ret && pluto_push(coro, ret))
 					{
-					case "window_call":
-						let data = pluto_extract(coro, nres - 1);
-						window[data.shift()](...data);
-						break;
-
-					case "addEventListener":
-						console.assert(nres == 4);
-						lib.lua_pushvalue(coro, -1);
-						let ref = lib.luaL_ref(coro, LUA_REGISTRYINDEX);
-						document.querySelector(lib.lua_tolstring(coro, -3, 0)).addEventListener(lib.lua_tolstring(coro, -2, 0), function()
-						{
-							lib.lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-							pluto_invoke_impl();
-						});
-						break;
-
-					case "element_index":
-						console.assert(nres == 3);
-						let path = lib.lua_tolstring(coro, -2, 0);
-						let key = lib.lua_tolstring(coro, -1, 0);
-						lib.lua_pop(coro, nres);
-						lib.lua_pushstring(coro, document.querySelector(path)[key]); ++nargs;
-						break;
-
-					case "element_newindex":
-						console.assert(nres == 4);
-						document.querySelector(lib.lua_tolstring(coro, -3, 0))[lib.lua_tolstring(coro, -2, 0)] = lib.lua_tolstring(coro, -1, 0);
-						break;
-
-					default:
-						console.warn("Unhandled command:", lib.lua_tolstring(coro, -nres, 0));
-					}
-					if (nargs == 0)
-					{
-						lib.lua_pop(coro, nres);
+						nargs = 1;
 					}
 				}
 				else if (status != LUA_OK)
@@ -251,6 +239,23 @@ function pluto_invoke(name, ...args)
 		throw new Error(name + " is not defined as a function in any Pluto script");
 	}
 	return pluto_invoke_impl(...args);
+}
+
+// Commands for Pluto Runtime
+
+function pluto_cmd_addEventListener(path, evt, f)
+{
+	document.querySelector(path).addEventListener(evt, f);
+}
+
+function pluto_cmd_Element_index(path, key)
+{
+	return document.querySelector(path)[key];
+}
+
+function pluto_cmd_Element_newindex(path, key, value)
+{
+	document.querySelector(path)[key] = value;
 }
 
 // DOM Helpers (stolen from https://dev.to/aniket_chauhan/generate-a-css-selector-path-of-a-dom-element-4aim)

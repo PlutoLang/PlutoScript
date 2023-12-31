@@ -33,6 +33,7 @@ Barring the script tags needed for PlutoScript's usage, this is the entire sourc
 
 ## Pluto API
 
+- `js_invoke(name, ...args)` can be used to invoke a global JavaScript function
 - `window.__index.__call`: You can call any method on 'window', e.g. `window.alert("Hello")`
 - `document.getElementById(x)` returns an Element instance with path `$"#{x}"`
 - `document.querySelector(x)` returns an Element instance with path `x`
