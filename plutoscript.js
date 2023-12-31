@@ -99,17 +99,29 @@ document = {
 
 	document.querySelectorAll("script[type=pluto]").forEach(function(script)
 	{
-		if (lib.luaL_loadstring(L, script.textContent) == LUA_OK)
+		if (script.getAttribute("src"))
 		{
-			pluto_invoke_impl();
+			fetch(script.getAttribute("src")).then(res => res.text()).then(pluto_load);
 		}
 		else
 		{
-			console.error(lib.lua_tolstring(L, -1, 0));
-			lib.lua_pop(L, 1);
+			pluto_load(script.textContent);
 		}
 	});
 });
+
+function pluto_load(cont)
+{
+	if (lib.luaL_loadstring(L, cont) == LUA_OK)
+	{
+		pluto_invoke_impl();
+	}
+	else
+	{
+		console.error(lib.lua_tolstring(L, -1, 0));
+		lib.lua_pop(L, 1);
+	}
+}
 
 function pluto_push(coro, arg)
 {
