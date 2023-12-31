@@ -22,7 +22,6 @@ libpluto().then(function(mod)
 {
 	lib = {
 		mod: mod,
-		mutex: false,
 		malloc: mod.cwrap("malloc", "int", ["int"]),
 		luaL_newstate: mod.cwrap("luaL_newstate", "int", []),
 		luaL_openlibs: mod.cwrap("luaL_openlibs", "void", ["int"]),
@@ -45,6 +44,7 @@ libpluto().then(function(mod)
 		lua_pushvalue: mod.cwrap("lua_pushvalue", "int", ["int", "int"]),
 		luaL_ref: mod.cwrap("luaL_ref", "int", ["int", "int"]),
 		lua_rawgeti: mod.cwrap("lua_rawgeti", "void", ["int", "int", "int"]),
+		luaL_unref: mod.cwrap("luaL_unref", "int", ["int", "int", "int"]),
 	};
 
 	lib.tmpint = lib.malloc(4);
@@ -165,44 +165,31 @@ function pluto_extract(coro, nvals)
 function pluto_invoke_impl(...args)
 {
 	return new Promise((resolve, reject) => {
-		let interval, your_mutex_are_belong_to_us, coro, jsyields = 0;
+		let interval, coro, coro_ref, nargs = 0;
+
+		coro = lib.lua_newthread(L);
+		coro_ref = lib.luaL_ref(L, LUA_REGISTRYINDEX);
+		lib.lua_xmove(L, coro, 1);
+		args.forEach(arg => {
+			if (!pluto_push(coro, arg))
+			{
+				return reject(new Error("Unsupported argument type: " + typeof(arg)));
+			}
+			++nargs;
+		});
+
 		interval = setInterval(function()
 		{
-			if (lib.mutex && !your_mutex_are_belong_to_us)
-			{
-				return;
-			}
-			your_mutex_are_belong_to_us = true;
-			lib.mutex = true;
-			let nargs = 0;
-			if (!coro)
-			{
-				coro = lib.lua_newthread(L);
-				lib.lua_pushvalue(L, -2);
-				lib.lua_xmove(L, coro, 1);
-				args.forEach(arg => {
-					if (!pluto_push(coro, arg))
-					{
-						lib.mutex = false;
-						clearInterval(interval);
-						return reject(new Error("Unsupported argument type: " + typeof(arg)));
-					}
-					++nargs;
-				});
-			}
+			let err, nres, res;
 			for (let initial = true; initial || lib.lua_status(coro) == LUA_YIELD; initial = false)
 			{
 				let status = lib.lua_resume(coro, L, nargs, lib.tmpint);
 				nargs = 0;
 				if (status == LUA_YIELD)
 				{
-					let nres = lib.mod.HEAP32[lib.tmpint / 4];
+					nres = lib.mod.HEAP32[lib.tmpint / 4];
 					if (nres == 0)
 					{
-						if (++jsyields == 2000)
-						{
-							console.trace("Script has been busy-spinning for a while now. Possible bug?");
-						}
 						return;
 					}
 					let data = pluto_extract(coro, nres);
@@ -215,18 +202,26 @@ function pluto_invoke_impl(...args)
 				}
 				else if (status != LUA_OK)
 				{
-					lib.mutex = false;
-					clearInterval(interval);
-					return reject(new Error(lib.lua_tolstring(coro, -1, 0)));
+					err = new Error(lib.lua_tolstring(coro, -1, 0));
+					break;
 				}
 			}
-			lib.mutex = false;
 			clearInterval(interval);
-			let nres = lib.lua_gettop(coro);
-			let res = pluto_extract(coro, nres);
+			if (!err)
+			{
+				nres = lib.lua_gettop(coro);
+				res = pluto_extract(coro, nres);
+			}
 			lib.lua_closethread(coro, L);
-			lib.lua_pop(L, 2); // pop coroutine & function
-			return resolve(nres == 1 ? res[0] : res);
+			lib.luaL_unref(L, LUA_REGISTRYINDEX, coro_ref);
+			if (!err)
+			{
+				resolve(nres == 1 ? res[0] : res);
+			}
+			else
+			{
+				reject(err);
+			}
 		}, 1);
 	});
 }
