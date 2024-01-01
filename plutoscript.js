@@ -98,18 +98,6 @@ document = {
 }`);
 	lib.lua_callk(L, 0, 0, 0, 0);
 
-	document.querySelectorAll("script[type=pluto]").forEach(function(script)
-	{
-		if (script.getAttribute("src"))
-		{
-			fetch(script.getAttribute("src")).then(res => res.text()).then(pluto_load);
-		}
-		else
-		{
-			pluto_load(script.textContent);
-		}
-	});
-
 	callbacks.forEach(cb => cb());
 	callbacks = [];
 });
@@ -126,6 +114,30 @@ function pluto_await()
 			callbacks.push(resolve);
 		}
 	});
+}
+
+function pluto_load_script_tags()
+{
+	document.querySelectorAll("script[type=pluto]").forEach(function(script)
+	{
+		if (script.getAttribute("src"))
+		{
+			fetch(script.getAttribute("src")).then(res => res.text()).then(cont => pluto_await().then(() => pluto_load(cont)));
+		}
+		else
+		{
+			pluto_await().then(() => pluto_load(script.textContent));
+		}
+	});
+}
+
+if (document.readyState == "complete" || document.readyState == "interactive")
+{
+    pluto_load_script_tags();
+}
+else
+{
+	window.addEventListener("DOMContentLoaded", pluto_load_script_tags);
 }
 
 function pluto_load(cont)
