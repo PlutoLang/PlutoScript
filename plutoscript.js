@@ -30,6 +30,7 @@ libpluto().then(function(mod)
 		lua_getglobal: mod.cwrap("lua_getglobal", "void", ["int", "string"]),
 		lua_type: mod.cwrap("lua_type", "int", ["int", "int"]),
 		lua_pushstring: mod.cwrap("lua_pushstring", "void", ["int", "string"]),
+		lua_pushlstring: mod.cwrap("lua_pushlstring", "void", ["int", "array", "int"]),
 		lua_pushinteger: mod.cwrap("lua_pushinteger", "void", ["int", "int"]),
 		lua_tolstring: mod.cwrap("lua_tolstring", "string", ["int", "int", "int"]),
 		lua_tointegerx: mod.cwrap("lua_tointegerx", "int", ["int", "int", "int"]),
@@ -129,16 +130,21 @@ function pluto_push(coro, arg)
 	{
 	case "string":
 		lib.lua_pushstring(coro, arg);
-		break;
+		return true;
 
 	case "number":
 		lib.lua_pushinteger(coro, arg);
-		break;
+		return true;
 
-	default:
-		return false;
+	case "object":
+		if (arg instanceof Uint8Array)
+		{
+			lib.lua_pushlstring(coro, arg, arg.length);
+			return true;
+		}
+		break;
 	}
-	return true;
+	return false;
 }
 
 function pluto_extract(coro, nvals)
