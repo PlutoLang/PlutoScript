@@ -183,7 +183,7 @@ function pluto_extract(coro, nvals)
 function pluto_invoke_impl(...args)
 {
 	return new Promise((resolve, reject) => {
-		let interval, coro, coro_ref, nargs = 0;
+		let interval, coro, coro_ref, nargs = 0, awaiting_promise = false;
 
 		coro = lib.lua_newthread(L);
 		coro_ref = lib.luaL_ref(L, LUA_REGISTRYINDEX);
@@ -198,6 +198,10 @@ function pluto_invoke_impl(...args)
 
 		interval = setInterval(function()
 		{
+			if (awaiting_promise)
+			{
+				return;
+			}
 			let err, nres, res;
 			for (let initial = true; initial || lib.lua_status(coro) == LUA_YIELD; initial = false)
 			{
@@ -213,9 +217,25 @@ function pluto_invoke_impl(...args)
 					let data = pluto_extract(coro, nres);
 					lib.lua_pop(coro, nres);
 					let ret = window[data.shift()](...data);
-					if (ret && pluto_push(coro, ret))
+					if (ret)
 					{
-						nargs = 1;
+						if (pluto_push(coro, ret))
+						{
+							nargs = 1;
+						}
+						else if (ret instanceof Promise)
+						{
+							awaiting_promise = true;
+							ret.then(ret => {
+								if (pluto_push(coro, ret))
+								{
+									nargs = 1;
+								}
+							}).finally(() => {
+								awaiting_promise = false;
+							});
+							return;
+						}
 					}
 				}
 				else if (status != LUA_OK)
