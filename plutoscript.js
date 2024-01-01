@@ -17,7 +17,7 @@ const LUA_REGISTRYINDEX = (-LUAI_MAXSTACK - 1000);
 const LUA_NOREF = -2;
 const LUA_REFNIL = -1;
 
-let lib, L;
+let lib, L, callbacks = [];
 libpluto().then(function(mod)
 {
 	lib = {
@@ -109,7 +109,24 @@ document = {
 			pluto_load(script.textContent);
 		}
 	});
+
+	callbacks.forEach(cb => cb());
+	callbacks = [];
 });
+
+function pluto_await()
+{
+	return new Promise(resolve => {
+		if (lib)
+		{
+			resolve();
+		}
+		else
+		{
+			callbacks.push(resolve);
+		}
+	});
+}
 
 function pluto_load(cont)
 {
