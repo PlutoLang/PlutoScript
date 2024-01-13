@@ -34,9 +34,12 @@ libpluto().then(function(mod)
 		lua_pushstring: mod.cwrap("lua_pushstring", "void", ["int", "string"]),
 		lua_pushlstring: mod.cwrap("lua_pushlstring", "void", ["int", "array", "int"]),
 		lua_pushinteger: mod.cwrap("lua_pushinteger", "void", ["int", "int"]),
+		lua_pushnumber: mod.cwrap("lua_pushnumber", "void", ["int", "number"]),
 		lua_istrue: mod.cwrap("lua_istrue", "int", ["int", "int"]),
+		lua_isinteger: mod.cwrap("lua_isinteger", "int", ["int", "int"]),
 		lua_tolstring: mod.cwrap("lua_tolstring", "string", ["int", "int", "int"]),
 		lua_tointegerx: mod.cwrap("lua_tointegerx", "int", ["int", "int", "int"]),
+		lua_tonumberx: mod.cwrap("lua_tonumberx", "number", ["int", "int", "int"]),
 		lua_settop: mod.cwrap("lua_settop", "void", ["int", "int"]),
 		lua_setglobal: mod.cwrap("lua_setglobal", "void", ["int", "string"]),
 		lua_newthread: mod.cwrap("lua_newthread", "int", ["int"]),
@@ -183,7 +186,14 @@ function pluto_push(coro, arg)
 		return true;
 
 	case "number":
-		lib.lua_pushinteger(coro, arg);
+		if (arg % 1 === 0)
+		{
+			lib.lua_pushinteger(coro, arg);
+		}
+		else
+		{
+			lib.lua_pushnumber(coro, arg);
+		}
 		return true;
 
 	case "object":
@@ -231,7 +241,14 @@ function pluto_extract(coro, nvals)
 			break;
 
 		case LUA_TNUMBER:
-			vals.push(lib.lua_tointegerx(coro, -(nvals-i), 0));
+			if (lib.lua_isinteger(coro, -(nvals-i)))
+			{
+				vals.push(lib.lua_tointegerx(coro, -(nvals-i), 0));
+			}
+			else
+			{
+				vals.push(lib.lua_tonumberx(coro, -(nvals-i), 0));
+			}
 			break;
 
 		case LUA_TFUNCTION:
