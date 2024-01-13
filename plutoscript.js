@@ -59,6 +59,10 @@ libpluto().then(function(mod)
 
 js_invoke = coroutine.yield
 
+dofile = function(src)
+	return js_invoke("pluto_require", src)
+end
+
 window = setmetatable({}, { -- silly little thingy to make 'window.alert' work
 	__index = function(self, key)
 		return setmetatable({}, {
@@ -122,7 +126,7 @@ function pluto_load_script_tags()
 	{
 		if (script.getAttribute("src"))
 		{
-			fetch(script.getAttribute("src")).then(res => res.text()).then(cont => pluto_await().then(() => pluto_load(cont)));
+			pluto_require(script.getAttribute("src"));
 		}
 		else
 		{
@@ -140,16 +144,24 @@ else
 	window.addEventListener("DOMContentLoaded", pluto_load_script_tags);
 }
 
+function pluto_require(src)
+{
+	return new Promise(resolve => {
+		fetch(src).then(res => res.text()).then(cont => pluto_await().then(() => pluto_load(cont).then(resolve)));
+	});
+}
+
 function pluto_load(cont)
 {
 	if (lib.luaL_loadstring(L, cont) == LUA_OK)
 	{
-		pluto_invoke_impl();
+		return pluto_invoke_impl();
 	}
 	else
 	{
-		console.error(lib.lua_tolstring(L, -1, 0));
+		let err = lib.lua_tolstring(L, -1, 0);
 		lib.lua_pop(L, 1);
+		return Promise.reject(err);
 	}
 }
 
