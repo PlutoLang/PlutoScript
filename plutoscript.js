@@ -25,7 +25,8 @@ libpluto().then(function(mod)
 		malloc: mod.cwrap("malloc", "int", ["int"]),
 		luaL_newstate: mod.cwrap("luaL_newstate", "int", []),
 		luaL_openlibs: mod.cwrap("luaL_openlibs", "void", ["int"]),
-		luaL_loadstring: mod.cwrap("luaL_loadstring", "void", ["int", "string"]),
+		luaL_loadstring: mod.cwrap("luaL_loadstring", "int", ["int", "string"]),
+		luaL_loadbufferx: mod.cwrap("luaL_loadbufferx", "int", ["int", "array", "int", "int", "int"]),
 		lua_callk: mod.cwrap("lua_callk", "void", ["int", "int", "int", "int", "int"]),
 		lua_getglobal: mod.cwrap("lua_getglobal", "void", ["int", "string"]),
 		lua_type: mod.cwrap("lua_type", "int", ["int", "int"]),
@@ -147,13 +148,16 @@ else
 function pluto_require(src)
 {
 	return new Promise(resolve => {
-		fetch(src).then(res => res.text()).then(cont => pluto_await().then(() => pluto_load(cont).then(resolve)));
+		fetch(src).then(res => res.arrayBuffer()).then(cont => pluto_await().then(() => pluto_load(new Uint8Array(cont)).then(resolve)));
 	});
 }
 
 function pluto_load(cont)
 {
-	if (lib.luaL_loadstring(L, cont) == LUA_OK)
+	if ((cont instanceof Uint8Array
+		? lib.luaL_loadbufferx(L, cont, cont.length, 0, 0)
+		: lib.luaL_loadstring(L, cont))
+		== LUA_OK)
 	{
 		return pluto_invoke_impl();
 	}
