@@ -34,6 +34,7 @@ libpluto().then(function(mod)
 		lua_pushstring: mod.cwrap("lua_pushstring", "void", ["int", "string"]),
 		lua_pushlstring: mod.cwrap("lua_pushlstring", "void", ["int", "array", "int"]),
 		lua_pushinteger: mod.cwrap("lua_pushinteger", "void", ["int", "int"]),
+		lua_istrue: mod.cwrap("lua_istrue", "int", ["int", "int"]),
 		lua_tolstring: mod.cwrap("lua_tolstring", "string", ["int", "int", "int"]),
 		lua_tointegerx: mod.cwrap("lua_tointegerx", "int", ["int", "int", "int"]),
 		lua_settop: mod.cwrap("lua_settop", "void", ["int", "int"]),
@@ -221,6 +222,10 @@ function pluto_extract(coro, nvals)
 	{
 		switch (lib.lua_type(coro, -(nvals-i)))
 		{
+		case LUA_TBOOLEAN:
+			vals.push(lib.lua_istrue(coro, -(nvals-i)));
+			break;
+
 		case LUA_TSTRING:
 			vals.push(lib.lua_tolstring(coro, -(nvals-i), 0));
 			break;
