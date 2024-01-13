@@ -66,7 +66,7 @@ libpluto().then(function(mod)
 js_invoke = coroutine.yield
 
 dofile = function(src)
-	return js_invoke("pluto_require", src)
+	return load(js_invoke("pluto_cmd_fetch", src))()
 end
 
 window = setmetatable({}, { -- silly little thingy to make 'window.alert' work
@@ -361,6 +361,13 @@ function pluto_invoke(name, ...args)
 }
 
 // Commands for Pluto Runtime
+
+function pluto_cmd_fetch(src)
+{
+	return new Promise(resolve => {
+		fetch(src).then(res => res.arrayBuffer()).then(cont => resolve(new Uint8Array(cont)));
+	});
+}
 
 function pluto_cmd_addEventListener(path, evt, f)
 {
