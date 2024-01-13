@@ -207,7 +207,7 @@ function pluto_push(coro, arg)
 			for (key in arg)
 			{
 				let intkey = parseInt(key);
-				if (pluto_push(coro, intkey == key ? intkey : key))
+				if (pluto_push(coro, intkey == key ? intkey + 1 : key))
 				{
 					if (pluto_push(coro, arg[key]))
 					{
@@ -268,6 +268,10 @@ function pluto_extract(coro, nvals)
 			while (lib.lua_next(coro, -2))
 			{
 				let [key, value] = pluto_extract(coro, 2);
+				if (typeof(key) == "number")
+				{
+					key--;
+				}
 				obj[key] = value;
 				lib.lua_pop(coro, 1);
 			}
