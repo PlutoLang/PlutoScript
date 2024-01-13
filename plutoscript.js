@@ -30,6 +30,7 @@ libpluto().then(function(mod)
 		lua_callk: mod.cwrap("lua_callk", "void", ["int", "int", "int", "int", "int"]),
 		lua_getglobal: mod.cwrap("lua_getglobal", "void", ["int", "string"]),
 		lua_type: mod.cwrap("lua_type", "int", ["int", "int"]),
+		lua_pushnil: mod.cwrap("lua_pushnil", "void", ["int"]),
 		lua_pushstring: mod.cwrap("lua_pushstring", "void", ["int", "string"]),
 		lua_pushlstring: mod.cwrap("lua_pushlstring", "void", ["int", "array", "int"]),
 		lua_pushinteger: mod.cwrap("lua_pushinteger", "void", ["int", "int"]),
@@ -47,6 +48,9 @@ libpluto().then(function(mod)
 		luaL_ref: mod.cwrap("luaL_ref", "int", ["int", "int"]),
 		lua_rawgeti: mod.cwrap("lua_rawgeti", "void", ["int", "int", "int"]),
 		luaL_unref: mod.cwrap("luaL_unref", "int", ["int", "int", "int"]),
+		lua_next: mod.cwrap("lua_next", "int", ["int"]),
+		lua_createtable: mod.cwrap("lua_createtable", "void", ["int", "int", "int"]),
+		lua_settable: mod.cwrap("lua_settable", "void", ["int", "int"]),
 	};
 
 	lib.tmpint = lib.malloc(4);
@@ -185,9 +189,27 @@ function pluto_push(coro, arg)
 		if (arg instanceof Uint8Array)
 		{
 			lib.lua_pushlstring(coro, arg, arg.length);
-			return true;
 		}
-		break;
+		else
+		{
+			lib.lua_createtable(coro, 0, 0);
+			for (key in arg)
+			{
+				let intkey = parseInt(key);
+				if (pluto_push(coro, intkey == key ? intkey : key))
+				{
+					if (pluto_push(coro, arg[key]))
+					{
+						lib.lua_settable(coro, -3);
+					}
+					else
+					{
+						lib.lua_pop(coro, 1);
+					}
+				}
+			}
+		}
+		return true;
 	}
 	return false;
 }
@@ -215,6 +237,20 @@ function pluto_extract(coro, nvals)
 				lib.lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
 				pluto_invoke_impl();
 			});
+			break;
+
+		case LUA_TTABLE:
+			let obj = {};
+			lib.lua_pushvalue(coro, -1);
+			lib.lua_pushnil(coro);
+			while (lib.lua_next(coro, -2))
+			{
+				let [key, value] = pluto_extract(coro, 2);
+				obj[key] = value;
+				lib.lua_pop(coro, 1);
+			}
+			lib.lua_pop(coro, 1);
+			vals.push(obj);
 			break;
 
 		default:
@@ -264,11 +300,7 @@ function pluto_invoke_impl(...args)
 					let ret = window[data.shift()](...data);
 					if (ret)
 					{
-						if (pluto_push(coro, ret))
-						{
-							nargs = 1;
-						}
-						else if (ret instanceof Promise)
+						if (ret instanceof Promise)
 						{
 							awaiting_promise = true;
 							ret.then(ret => {
@@ -280,6 +312,10 @@ function pluto_invoke_impl(...args)
 								awaiting_promise = false;
 							});
 							return;
+						}
+						if (pluto_push(coro, ret))
+						{
+							nargs = 1;
 						}
 					}
 				}
