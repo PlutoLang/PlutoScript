@@ -69,7 +69,11 @@ libpluto().then(function(mod)
 js_invoke = coroutine.yield
 
 dofile = function(src)
-	return load(js_invoke("pluto_cmd_fetch", src))()
+	local chunk, err = load(js_invoke("pluto_cmd_fetch", src))
+	if not chunk then
+		error(err)
+	end
+	return chunk()
 end
 
 window = setmetatable({}, { -- silly little thingy to make 'window.alert' work
