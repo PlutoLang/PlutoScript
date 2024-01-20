@@ -1,6 +1,6 @@
 # PlutoScript
 
-Write websites using Pluto (a dialect of Lua) instead of JavaScript.
+Write Pluto, a dialect of Lua, anywhere JavaScript works.
 
 ## Usage
 
