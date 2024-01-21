@@ -256,7 +256,7 @@ function pluto_extract(coro, nvals)
 			break;
 
 		case LUA_TFUNCTION:
-			lib.lua_pushvalue(coro, -1);
+			lib.lua_pushvalue(coro, -(nvals-i));
 			let ref = lib.luaL_ref(coro, LUA_REGISTRYINDEX);
 			vals.push(function()
 			{
@@ -267,7 +267,7 @@ function pluto_extract(coro, nvals)
 
 		case LUA_TTABLE:
 			let obj = {};
-			lib.lua_pushvalue(coro, -1);
+			lib.lua_pushvalue(coro, -(nvals-i));
 			lib.lua_pushnil(coro);
 			while (lib.lua_next(coro, -2))
 			{
