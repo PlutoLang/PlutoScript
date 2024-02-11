@@ -7,7 +7,7 @@ Write Pluto, a dialect of Lua, anywhere JavaScript works.
 You simply need to load a suitable WASM build of libpluto, and then PlutoScript itself:
 
 ```html
-<script src="https://wasm.pluto.do/out/libpluto/0.8.0/libpluto.js"></script>
+<script src="https://wasm.pluto.do/out/libpluto/0.8.1/libpluto.js"></script>
 <script src="https://pluto-lang.org/PlutoScript/plutoscript.js"></script>
 ```
 
