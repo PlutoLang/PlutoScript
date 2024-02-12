@@ -1,6 +1,6 @@
 # PlutoScript
 
-Write Pluto, a dialect of Lua, anywhere JavaScript works.
+Write Pluto, a Lua dialect, anywhere JavaScript works.
 
 ## Usage
 
