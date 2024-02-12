@@ -110,6 +110,7 @@ class Element
 end
 
 document = {
+	query = |x| -> new Element(x),
 	querySelector = |x| -> new Element(x),
 	getElementById = |x| -> new Element("#"..x),
 }`);
