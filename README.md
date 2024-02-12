@@ -40,4 +40,6 @@ Barring the script tags needed for PlutoScript's usage, this is the entire sourc
 - `document.getElementById(x)` returns an Element instance with path `$"#{x}"`
 - `document.querySelector(x)` returns an Element instance with path `x`
 - `Element.__index`/`Element.__newindex`: You can read and write any property of an Element, e.g. `.value`
-- `Element:addEventListener(evt, func)` adds an event listener to the Element
+- `Element:addEventListener(evt, func)`
+- `Element:addClass(name)`
+- `Element:removeClass(name)`

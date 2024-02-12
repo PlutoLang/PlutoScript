@@ -107,6 +107,14 @@ class Element
 	function addEventListener(type, callback)
 		js_invoke("pluto_cmd_addEventListener", self.path, type, callback)
 	end
+
+	function addClass(name)
+		js_invoke("pluto_cmd_addClass", self.path, name)
+	end
+
+	function removeClass(name)
+		js_invoke("pluto_cmd_removeClass", self.path, name)
+	end
 end
 
 document = {
@@ -395,11 +403,6 @@ function pluto_cmd_fetch(src)
 	});
 }
 
-function pluto_cmd_addEventListener(path, evt, f)
-{
-	document.querySelector(path).addEventListener(evt, f);
-}
-
 function pluto_cmd_Element_index(path, key)
 {
 	return document.querySelector(path)[key];
@@ -408,6 +411,21 @@ function pluto_cmd_Element_index(path, key)
 function pluto_cmd_Element_newindex(path, key, value)
 {
 	document.querySelector(path)[key] = value;
+}
+
+function pluto_cmd_addEventListener(path, evt, f)
+{
+	document.querySelector(path).addEventListener(evt, f);
+}
+
+function pluto_cmd_addClass(path, name)
+{
+	document.querySelector(path).classList.add(name);
+}
+
+function pluto_cmd_removeClass(path, name)
+{
+	document.querySelector(path).classList.remove(name);
 }
 
 // DOM Helpers (stolen from https://dev.to/aniket_chauhan/generate-a-css-selector-path-of-a-dom-element-4aim)
