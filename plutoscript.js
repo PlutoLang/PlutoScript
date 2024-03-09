@@ -399,6 +399,13 @@ function pluto_invoke(name, ...args)
 	return pluto_invoke_impl(...args);
 }
 
+function pluto_give_file(name, data/*: Uint8Array */)
+{
+	let stream = lib.mod.FS.open(name, "w+");
+	lib.mod.FS.write(stream, data, 0, data.length, 0);
+	lib.mod.FS.close(stream);
+}
+
 // Commands for Pluto Runtime
 
 function pluto_cmd_fetch(src)
