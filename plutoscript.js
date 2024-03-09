@@ -35,6 +35,7 @@ libpluto().then(function(mod)
 		lua_pushlstring: mod.cwrap("lua_pushlstring", "void", ["int", "array", "int"]),
 		lua_pushinteger: mod.cwrap("lua_pushinteger", "void", ["int", "int"]),
 		lua_pushnumber: mod.cwrap("lua_pushnumber", "void", ["int", "number"]),
+		lua_pushboolean: mod.cwrap("lua_pushboolean", "void", ["int", "int"]),
 		lua_istrue: mod.cwrap("lua_istrue", "int", ["int", "int"]),
 		lua_isinteger: mod.cwrap("lua_isinteger", "int", ["int", "int"]),
 		lua_tolstring: mod.cwrap("lua_tolstring", "string", ["int", "int", "int"]),
@@ -207,6 +208,10 @@ function pluto_push(coro, arg)
 		{
 			lib.lua_pushnumber(coro, arg);
 		}
+		return true;
+
+	case "boolean":
+		lib.lua_pushboolean(coro, arg ? 1 : 0);
 		return true;
 
 	case "object":
