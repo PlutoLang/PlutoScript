@@ -7,13 +7,13 @@ Write Pluto, a Lua dialect, anywhere JavaScript works.
 You simply need to load a suitable WASM build of libpluto, and then PlutoScript itself:
 
 ```html
-<script src="https://wasm.pluto.do/out/libpluto/0.9.2/libpluto.js"></script>
-<script src="https://pluto-lang.org/PlutoScript/plutoscript.js"></script>
+<script src="https://plutolang.github.io/wasm-builds/out/libpluto/0.9.4/libpluto.js"></script>
+<script src="https://plutolang.github.io/PlutoScript/plutoscript.js"></script>
 ```
 
 ## Example
 
-A simple example is the Base32 Encoder tool that is [available online here](https://pluto-lang.org/PlutoScript/base32.html).
+A simple example is the Base32 Encoder tool that is [available online here](https://plutolang.github.io/PlutoScript/base32.html).
 
 Barring the script tags needed for PlutoScript's usage, this is the entire source code:
 
