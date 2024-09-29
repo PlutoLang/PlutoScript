@@ -32,7 +32,7 @@ Barring the script tags needed for PlutoScript's usage, this is the entire sourc
 - `pluto_require(src)`
 - `pluto_load(code)`
 - `pluto_invoke(name, ...args)` can be used to invoke a global Pluto function
-- `pluto_give_file(name, data)` writes a Uint8Array for Pluto code to read from the file with the given name
+- `pluto_give_file(name, data)` writes a string or Uint8Array for Pluto code to read from the file with the given name
 
 ## Pluto API
 

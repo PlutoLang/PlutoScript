@@ -412,8 +412,60 @@ function pluto_invoke(name, ...args)
 	return pluto_invoke_impl(...args);
 }
 
-function pluto_give_file(name, data/*: Uint8Array */)
+const utf32_to_utf8 = function(utf8/*: array */, utf32/*: number */)/*: void */
 {
+	// 1
+	if (utf32 < 0b10000000)
+	{
+		utf8.push(utf32);
+		return;
+	}
+	// 2
+	const UTF8_CONTINUATION_FLAG = 0b10000000;
+	utf8.push((utf32 & 0b111111) | UTF8_CONTINUATION_FLAG);
+	utf32 >>= 6;
+	if (utf32 <= 0b11111)
+	{
+		utf8.splice(utf8.length - 1, 0, utf32 | 0b11000000); // 110xxxxx
+		return;
+	}
+	// 3
+	utf8.splice(utf8.length - 1, 0, (utf32 & 0b111111) | UTF8_CONTINUATION_FLAG);
+	utf32 >>= 6;
+	if (utf32 <= 0b1111)
+	{
+		utf8.splice(utf8.length - 2, 0, utf32 | 0b11100000); // 1110xxxx
+		return;
+	}
+	// 4
+	utf8.splice(utf8.length - 2, 0, (utf32 & 0b111111) | UTF8_CONTINUATION_FLAG);
+	utf32 >>= 6;
+	utf8.splice(utf8.length - 3, 0, utf32 | 0b11110000); // 11110xxx
+}
+
+const utf16_to_utf8 = function(str)
+{
+	let arr = [];
+	for(let i = 0; i != str.length; ++i)
+	{
+		let c = str.charCodeAt(i);
+		if ((c >> 10) == 0x36) // Surrogate pair?
+		{
+			let hi = c & 0x3ff;
+			let lo = str.charCodeAt(++i) & 0x3ff;
+			c = (((hi * 0x400) + lo) + 0x10000);
+		}
+		utf32_to_utf8(arr, c);
+	}
+	return arr;
+}
+
+function pluto_give_file(name, data)
+{
+	if (typeof data == "string")
+	{
+		data = new Uint8Array(utf16_to_utf8(data));
+	}
 	let stream = lib.mod.FS.open(name, "w+");
 	lib.mod.FS.write(stream, data, 0, data.length, 0);
 	lib.mod.FS.close(stream);
