@@ -145,15 +145,27 @@ function pluto_await()
 
 async function pluto_load_script_tags()
 {
+	const requests = {};
 	for (const script of document.querySelectorAll("script[type=pluto]"))
 	{
 		if (script.getAttribute("src"))
 		{
-			await pluto_require(script.getAttribute("src"));
+			if (!requests[script.getAttribute("src")])
+			{
+				requests[script.getAttribute("src")] = fetch(script.getAttribute("src")).then(res => res.arrayBuffer());
+			}
+		}
+	}
+	await pluto_await();
+	for (const script of document.querySelectorAll("script[type=pluto]"))
+	{
+		if (script.getAttribute("src"))
+		{
+			const abRes = await requests[script.getAttribute("src")];
+			pluto_load(new Uint8Array(abRes));
 		}
 		else
 		{
-			await pluto_await();
 			pluto_load(script.textContent);
 		}
 	}
