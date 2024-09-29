@@ -446,7 +446,7 @@ const utf32_to_utf8 = function(utf8/*: array */, utf32/*: number */)/*: void */
 const utf16_to_utf8 = function(str)
 {
 	let arr = [];
-	for(let i = 0; i != str.length; ++i)
+	for(let i = 0; i < str.length; ++i)
 	{
 		let c = str.charCodeAt(i);
 		if ((c >> 10) == 0x36) // Surrogate pair?
