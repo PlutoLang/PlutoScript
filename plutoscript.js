@@ -143,19 +143,20 @@ function pluto_await()
 	});
 }
 
-function pluto_load_script_tags()
+async function pluto_load_script_tags()
 {
-	document.querySelectorAll("script[type=pluto]").forEach(function(script)
+	for (const script of document.querySelectorAll("script[type=pluto]"))
 	{
 		if (script.getAttribute("src"))
 		{
-			pluto_require(script.getAttribute("src"));
+			await pluto_require(script.getAttribute("src"));
 		}
 		else
 		{
-			pluto_await().then(() => pluto_load(script.textContent));
+			await pluto_await();
+			pluto_load(script.textContent);
 		}
-	});
+	}
 }
 
 if (document.readyState == "complete" || document.readyState == "interactive")
