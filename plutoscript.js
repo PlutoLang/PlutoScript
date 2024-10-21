@@ -116,6 +116,14 @@ class Element
 	function removeClass(name)
 		js_invoke("pluto_cmd_removeClass", self.path, name)
 	end
+
+	function removeAttribute(name, value)
+		js_invoke("pluto_cmd_setAttribute", self.path, name, value)
+	end
+
+	function removeAttribute(name)
+		js_invoke("pluto_cmd_removeAttribute", self.path, name)
+	end
 end
 
 document = {
@@ -503,6 +511,16 @@ function pluto_cmd_addClass(path, name)
 function pluto_cmd_removeClass(path, name)
 {
 	document.querySelector(path).classList.remove(name);
+}
+
+function pluto_cmd_setAttribute(path, name, value)
+{
+	document.querySelector(path).setAttribute(name, value);
+}
+
+function pluto_cmd_removeAttribute(path, name)
+{
+	document.querySelector(path).removeAttribute(name);
 }
 
 // DOM Helpers (stolen from https://dev.to/aniket_chauhan/generate-a-css-selector-path-of-a-dom-element-4aim)

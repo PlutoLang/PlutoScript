@@ -44,3 +44,5 @@ Barring the script tags needed for PlutoScript's usage, this is the entire sourc
 - `Element:addEventListener(evt, func)`
 - `Element:addClass(name)`
 - `Element:removeClass(name)`
+- `Element:setAttribute(name, value)`
+- `Element:removeAttribute(name)`
