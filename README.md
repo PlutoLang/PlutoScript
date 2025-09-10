@@ -7,7 +7,7 @@ Provides `<script type="pluto">` and high-level APIs.
 You simply need to load a suitable WASM build of libpluto, and then PlutoScript itself:
 
 ```html
-<script src="https://pluto-lang.org/wasm-builds/out/libpluto/0.9.5/libpluto.js"></script>
+<script src="https://pluto-lang.org/wasm-builds/out/libpluto/0.12.0/libpluto.js"></script>
 <script src="https://pluto-lang.org/PlutoScript/plutoscript.js"></script>
 ```
 

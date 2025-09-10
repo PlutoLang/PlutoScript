@@ -24,7 +24,7 @@ libpluto().then(function(mod)
 		mod: mod,
 		malloc: mod.cwrap("malloc", "int", ["int"]),
 		luaL_newstate: mod.cwrap("luaL_newstate", "int", []),
-		luaL_openlibs: mod.cwrap("luaL_openlibs", "void", ["int"]),
+		luaL_openlibs: mod._luaL_openlibs ? mod.cwrap("luaL_openlibs", "void", ["int"]) : undefined,
 		luaL_loadstring: mod.cwrap("luaL_loadstring", "int", ["int", "string"]),
 		luaL_loadbufferx: mod.cwrap("luaL_loadbufferx", "int", ["int", "array", "int", "int", "int"]),
 		lua_callk: mod.cwrap("lua_callk", "void", ["int", "int", "int", "int", "int"]),
@@ -36,6 +36,7 @@ libpluto().then(function(mod)
 		lua_pushinteger: mod.cwrap("lua_pushinteger", "void", ["int", "int"]),
 		lua_pushnumber: mod.cwrap("lua_pushnumber", "void", ["int", "number"]),
 		lua_pushboolean: mod.cwrap("lua_pushboolean", "void", ["int", "int"]),
+		lua_pushlightuserdata: mod.cwrap("lua_pushlightuserdata", "void", ["int", "int"]),
 		lua_istrue: mod.cwrap("lua_istrue", "int", ["int", "int"]),
 		lua_isinteger: mod.cwrap("lua_isinteger", "int", ["int", "int"]),
 		lua_tolstring: mod.cwrap("lua_tolstring", "string", ["int", "int", "int"]),
@@ -57,7 +58,11 @@ libpluto().then(function(mod)
 		lua_createtable: mod.cwrap("lua_createtable", "void", ["int", "int", "int"]),
 		lua_settable: mod.cwrap("lua_settable", "void", ["int", "int"]),
 	};
-
+	if (!lib.luaL_openlibs)
+	{
+		lib.luaL_openselectedlibs = mod.cwrap("luaL_openselectedlibs", "int", ["int", "int", "int"]);
+		lib.luaL_openlibs = (L) => lib.luaL_openselectedlibs(L, 1023, 0xffffffff);
+	}
 	lib.tmpint = lib.malloc(4);
 
 	lib.lua_pop = (L, n) => lib.lua_settop(L, -(n)-1);
@@ -295,7 +300,7 @@ function pluto_extract(coro, nvals)
 			let ref = lib.luaL_ref(coro, LUA_REGISTRYINDEX);
 			vals.push(function()
 			{
-				lib.lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+				lib.lua_rawgeti(L, LUA_REGISTRYINDEX, lib.mod._luaL_openlibs ? ref : BigInt(ref));
 				pluto_invoke_impl();
 			});
 			break;
@@ -355,7 +360,7 @@ function pluto_invoke_impl(...args)
 				nargs = 0;
 				if (status == LUA_YIELD)
 				{
-					nres = lib.mod.HEAP32[lib.tmpint / 4];
+					nres = lib.mod.getValue ? lib.mod.getValue(lib.tmpint, "i32") : lib.mod.HEAP32[lib.tmpint / 4];
 					if (nres == 0)
 					{
 						return;
