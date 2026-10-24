@@ -12,8 +12,7 @@ const LUA_TTHREAD = 8;
 const LUA_OK = 0;
 const LUA_YIELD = 1;
 
-const LUAI_MAXSTACK = 1000000;
-const LUA_REGISTRYINDEX = (-LUAI_MAXSTACK - 1000);
+let LUA_REGISTRYINDEX;
 const LUA_NOREF = -2;
 const LUA_REFNIL = -1;
 
@@ -58,7 +57,14 @@ libpluto().then(function(mod)
 		lua_createtable: mod.cwrap("lua_createtable", "void", ["int", "int", "int"]),
 		lua_settable: mod.cwrap("lua_settable", "void", ["int", "int"]),
 	};
-	if (!lib.luaL_openlibs)
+	const INT_MAX = 2147483647;
+	LUA_REGISTRYINDEX = (-(Math.trunc(INT_MAX/2) + 1000));
+	if (mod._lua_resetthread) // < 0.13.0 ?
+	{
+		const LUAI_MAXSTACK = 1000000;
+		LUA_REGISTRYINDEX = (-LUAI_MAXSTACK - 1000);
+	}
+	if (!lib.luaL_openlibs) // >= 0.12.0 ?
 	{
 		lib.luaL_openselectedlibs = mod.cwrap("luaL_openselectedlibs", "int", ["int", "int", "int"]);
 		lib.luaL_openlibs = (L) => lib.luaL_openselectedlibs(L, 1023, 0xffffffff);
