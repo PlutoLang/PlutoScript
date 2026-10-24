@@ -234,7 +234,7 @@ function pluto_push(coro, arg)
 	case "number":
 		if (arg % 1 === 0)
 		{
-			lib.lua_pushinteger(coro, arg);
+			lib.lua_pushinteger(coro, lib.mod._luaL_openlibs ? arg : BigInt(arg));
 		}
 		else
 		{
