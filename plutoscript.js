@@ -1,81 +1,14 @@
-const LUA_TNONE = -1;
-const LUA_TNIL = 0;
-const LUA_TBOOLEAN = 1;
-const LUA_TLIGHTUSERDATA = 2;
-const LUA_TNUMBER = 3;
-const LUA_TSTRING = 4;
-const LUA_TTABLE = 5;
-const LUA_TFUNCTION = 6;
-const LUA_TUSERDATA = 7;
-const LUA_TTHREAD = 8;
-
-const LUA_OK = 0;
-const LUA_YIELD = 1;
-
-let LUA_REGISTRYINDEX;
-const LUA_NOREF = -2;
-const LUA_REFNIL = -1;
+//import wrapper from "./libpluto-wrapper.mjs";
 
 let lib, L, callbacks = [];
 libpluto().then(function(mod)
 {
-	lib = {
-		mod: mod,
-		malloc: mod.cwrap("malloc", "int", ["int"]),
-		luaL_newstate: mod.cwrap("luaL_newstate", "int", []),
-		luaL_openlibs: mod._luaL_openlibs ? mod.cwrap("luaL_openlibs", "void", ["int"]) : undefined,
-		luaL_loadstring: mod.cwrap("luaL_loadstring", "int", ["int", "string"]),
-		luaL_loadbufferx: mod.cwrap("luaL_loadbufferx", "int", ["int", "array", "int", "int", "int"]),
-		lua_callk: mod.cwrap("lua_callk", "void", ["int", "int", "int", "int", "int"]),
-		lua_getglobal: mod.cwrap("lua_getglobal", "void", ["int", "string"]),
-		lua_type: mod.cwrap("lua_type", "int", ["int", "int"]),
-		lua_pushnil: mod.cwrap("lua_pushnil", "void", ["int"]),
-		lua_pushstring: mod.cwrap("lua_pushstring", "void", ["int", "string"]),
-		lua_pushlstring: mod.cwrap("lua_pushlstring", "void", ["int", "array", "int"]),
-		lua_pushinteger: mod.cwrap("lua_pushinteger", "void", ["int", "int"]),
-		lua_pushnumber: mod.cwrap("lua_pushnumber", "void", ["int", "number"]),
-		lua_pushboolean: mod.cwrap("lua_pushboolean", "void", ["int", "int"]),
-		lua_pushlightuserdata: mod.cwrap("lua_pushlightuserdata", "void", ["int", "int"]),
-		lua_istrue: mod.cwrap("lua_istrue", "int", ["int", "int"]),
-		lua_isinteger: mod.cwrap("lua_isinteger", "int", ["int", "int"]),
-		lua_tolstring: mod.cwrap("lua_tolstring", "string", ["int", "int", "int"]),
-		lua_tointegerx: mod.cwrap("lua_tointegerx", "int", ["int", "int", "int"]),
-		lua_tonumberx: mod.cwrap("lua_tonumberx", "number", ["int", "int", "int"]),
-		lua_settop: mod.cwrap("lua_settop", "void", ["int", "int"]),
-		lua_setglobal: mod.cwrap("lua_setglobal", "void", ["int", "string"]),
-		lua_newthread: mod.cwrap("lua_newthread", "int", ["int"]),
-		lua_xmove: mod.cwrap("lua_xmove", "void", ["int", "int", "int"]),
-		lua_closethread: mod.cwrap("lua_closethread", "void", ["int", "int"]),
-		lua_status: mod.cwrap("lua_status", "int", ["int"]),
-		lua_resume: mod.cwrap("lua_resume", "int", ["int", "int", "int", "int"]),
-		lua_gettop: mod.cwrap("lua_gettop", "int", ["int"]),
-		lua_pushvalue: mod.cwrap("lua_pushvalue", "int", ["int", "int"]),
-		luaL_ref: mod.cwrap("luaL_ref", "int", ["int", "int"]),
-		lua_rawgeti: mod.cwrap("lua_rawgeti", "void", ["int", "int", "int"]),
-		luaL_unref: mod.cwrap("luaL_unref", "int", ["int", "int", "int"]),
-		lua_next: mod.cwrap("lua_next", "int", ["int"]),
-		lua_createtable: mod.cwrap("lua_createtable", "void", ["int", "int", "int"]),
-		lua_settable: mod.cwrap("lua_settable", "void", ["int", "int"]),
-	};
-	const INT_MAX = 2147483647;
-	LUA_REGISTRYINDEX = (-(Math.trunc(INT_MAX/2) + 1000));
-	if (mod._lua_resetthread) // < 0.13.0 ?
-	{
-		const LUAI_MAXSTACK = 1000000;
-		LUA_REGISTRYINDEX = (-LUAI_MAXSTACK - 1000);
-	}
-	if (!lib.luaL_openlibs) // >= 0.12.0 ?
-	{
-		lib.luaL_openselectedlibs = mod.cwrap("luaL_openselectedlibs", "int", ["int", "int", "int"]);
-		lib.luaL_openlibs = (L) => lib.luaL_openselectedlibs(L, 1023, 0xffffffff);
-	}
+	lib = window.libplutoWrapper(mod);
+	lib.mod = mod;
 	lib.tmpint = lib.malloc(4);
-
-	lib.lua_pop = (L, n) => lib.lua_settop(L, -(n)-1);
 
 	L = lib.luaL_newstate();
 	lib.luaL_openlibs(L);
-
 	lib.luaL_loadstring(L,`--[[ PlutoScript Runtime ]]
 
 js_invoke = coroutine.yield
@@ -211,7 +144,7 @@ function pluto_load(cont)
 	if ((cont instanceof Uint8Array
 		? lib.luaL_loadbufferx(L, cont, cont.length, 0, 0)
 		: lib.luaL_loadstring(L, cont))
-		== LUA_OK)
+		== lib.LUA_OK)
 	{
 		return pluto_invoke_impl();
 	}
@@ -282,15 +215,15 @@ function pluto_extract(coro, nvals)
 	{
 		switch (lib.lua_type(coro, -(nvals-i)))
 		{
-		case LUA_TBOOLEAN:
+		case lib.LUA_TBOOLEAN:
 			vals.push(lib.lua_istrue(coro, -(nvals-i)));
 			break;
 
-		case LUA_TSTRING:
+		case lib.LUA_TSTRING:
 			vals.push(lib.lua_tolstring(coro, -(nvals-i), 0));
 			break;
 
-		case LUA_TNUMBER:
+		case lib.LUA_TNUMBER:
 			if (lib.lua_isinteger(coro, -(nvals-i)))
 			{
 				vals.push(lib.lua_tointegerx(coro, -(nvals-i), 0));
@@ -301,17 +234,17 @@ function pluto_extract(coro, nvals)
 			}
 			break;
 
-		case LUA_TFUNCTION:
+		case lib.LUA_TFUNCTION:
 			lib.lua_pushvalue(coro, -(nvals-i));
-			let ref = lib.luaL_ref(coro, LUA_REGISTRYINDEX);
+			let ref = lib.luaL_ref(coro, lib.LUA_REGISTRYINDEX);
 			vals.push(function()
 			{
-				lib.lua_rawgeti(L, LUA_REGISTRYINDEX, lib.mod._luaL_openlibs ? ref : BigInt(ref));
+				lib.lua_rawgeti(L, lib.LUA_REGISTRYINDEX, lib.mod._luaL_openlibs ? ref : BigInt(ref));
 				pluto_invoke_impl();
 			});
 			break;
 
-		case LUA_TTABLE:
+		case lib.LUA_TTABLE:
 			let obj = {};
 			lib.lua_pushvalue(coro, -(nvals-i));
 			lib.lua_pushnil(coro);
@@ -343,7 +276,7 @@ function pluto_invoke_impl(...args)
 		let interval, coro, coro_ref, nargs = 0, awaiting_promise = false;
 
 		coro = lib.lua_newthread(L);
-		coro_ref = lib.luaL_ref(L, LUA_REGISTRYINDEX);
+		coro_ref = lib.luaL_ref(L, lib.LUA_REGISTRYINDEX);
 		lib.lua_xmove(L, coro, 1);
 		args.forEach(arg => {
 			if (!pluto_push(coro, arg))
@@ -360,11 +293,11 @@ function pluto_invoke_impl(...args)
 				return;
 			}
 			let err, nres, res;
-			for (let initial = true; initial || lib.lua_status(coro) == LUA_YIELD; initial = false)
+			for (let initial = true; initial || lib.lua_status(coro) == lib.LUA_YIELD; initial = false)
 			{
 				let status = lib.lua_resume(coro, L, nargs, lib.tmpint);
 				nargs = 0;
-				if (status == LUA_YIELD)
+				if (status == lib.LUA_YIELD)
 				{
 					nres = lib.mod.getValue ? lib.mod.getValue(lib.tmpint, "i32") : lib.mod.HEAP32[lib.tmpint / 4];
 					if (nres == 0)
@@ -395,7 +328,7 @@ function pluto_invoke_impl(...args)
 						}
 					}
 				}
-				else if (status != LUA_OK)
+				else if (status != lib.LUA_OK)
 				{
 					err = new Error(lib.lua_tolstring(coro, -1, 0));
 					break;
@@ -408,7 +341,7 @@ function pluto_invoke_impl(...args)
 				res = pluto_extract(coro, nres);
 			}
 			lib.lua_closethread(coro, L);
-			lib.luaL_unref(L, LUA_REGISTRYINDEX, coro_ref);
+			lib.luaL_unref(L, lib.LUA_REGISTRYINDEX, coro_ref);
 			if (!err)
 			{
 				resolve(nres == 1 ? res[0] : res);
@@ -424,7 +357,7 @@ function pluto_invoke_impl(...args)
 function pluto_invoke(name, ...args)
 {
 	lib.lua_getglobal(L, name);
-	if (lib.lua_type(L, -1) != LUA_TFUNCTION)
+	if (lib.lua_type(L, -1) != lib.LUA_TFUNCTION)
 	{
 		throw new Error(name + " is not defined as a function in any Pluto script");
 	}
