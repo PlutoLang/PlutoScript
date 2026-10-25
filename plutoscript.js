@@ -1,3 +1,5 @@
+console.warn("You are using PlutoScript from a static, unversioned URL. Please see https://github.com/PlutoLang/PlutoScript#readme for updated usage instructions.");
+
 const LUA_TNONE = -1;
 const LUA_TNIL = 0;
 const LUA_TBOOLEAN = 1;
