@@ -257,7 +257,7 @@ function pluto_invoke_impl(...args) {
                     const name = data.shift();
                     const target = window;
                     const ret = target[name](...data);
-                    if (ret) {
+                    if (ret !== undefined) {
                         if (ret instanceof Promise) {
                             awaiting_promise = true;
                             ret.then(value => {

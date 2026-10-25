@@ -335,7 +335,7 @@ function pluto_invoke_impl(...args: unknown[]): Promise<unknown>
 					const name = data.shift() as string;
 					const target = window as unknown as Record<string, (...fargs: unknown[]) => unknown>;
 					const ret = target[name](...data);
-					if (ret)
+					if (ret !== undefined)
 					{
 						if (ret instanceof Promise)
 						{
