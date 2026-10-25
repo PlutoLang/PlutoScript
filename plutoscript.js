@@ -374,7 +374,7 @@ function pluto_invoke_impl(...args)
 					let data = pluto_extract(coro, nres);
 					lib.lua_pop(coro, nres);
 					let ret = window[data.shift()](...data);
-					if (ret)
+					if (ret !== undefined)
 					{
 						if (ret instanceof Promise)
 						{
