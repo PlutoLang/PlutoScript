@@ -8,6 +8,7 @@ You simply need to load a suitable WASM build of libpluto, and then PlutoScript 
 
 ```html
 <script src="https://pluto-lang.org/wasm-builds/out/libpluto/0.13.2/libpluto.js"></script>
+<link rel="preload" href="https://pluto-lang.org/wasm-builds/out/libpluto/0.13.2/libpluto.wasm" as="fetch" type="application/wasm" crossorigin>
 <script src="https://cdn.jsdelivr.net/gh/PlutoLang/PlutoScript@0.1.2/plutoscript.js"></script>
 ```
 
